@@ -4,6 +4,15 @@ A version of [Morris Brodersen's vstools](https://github.com/morris/vstools)
 with Vagrant Story event animations, facial texture previews and ETM atlas PNG export.
 This is an independent modification, not an official release by Morris or Square Enix.
 
+## Run in your browser
+
+Open https://daemeous.github.io/vstools-facial/ . No installation is needed.
+Supply your own extracted game files through the file selectors.
+
+GitHub Pages publishes the `main` branch's root folder. The required Three.js
+browser modules and their MIT licence are included under `vendor/three/`;
+no npm build or Actions workflow is required for publishing.
+
 ## Run locally
 
 Install Node.js 22 or newer, then run:

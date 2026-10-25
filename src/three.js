@@ -1,3 +1,3 @@
-export * from '../node_modules/three/build/three.module.js';
-export * from '../node_modules/three/examples/jsm/controls/OrbitControls.js';
-export * from '../node_modules/three/examples/jsm/exporters/OBJExporter.js';
+export * from '../vendor/three/build/three.module.js';
+export * from '../vendor/three/examples/jsm/controls/OrbitControls.js';
+export * from '../vendor/three/examples/jsm/exporters/OBJExporter.js';
