@@ -22,7 +22,8 @@ export class SHP extends WEP {
       this.height.push(r.u8());
     }
 
-    r.skip(0x24); // TODO unknown
+    this.facialDefaults = [r.buffer(4), r.buffer(4)];
+    r.skip(0x1c); // Remaining texture-motion metadata
     r.skip(0x6); // TODO collision? not sure about this
 
     this.menuPositionY = r.s16();

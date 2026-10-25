@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <title>VSTOOLS</title>
+    <link rel="icon" href="data:,">
+    <title>VSTOOLS Facial Animation Viewer</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
     <link rel="stylesheet" href="css/main.css">
   </head>
@@ -40,6 +41,26 @@
           <button class="next">&gt;</button>
           <span class="animation-count"></span>
         </p>
+      </div>
+
+      <div class="ui-panel app-facial">
+        <h2>Facial animation Ã‚Â· event textures</h2>
+        <p><label>Event animation (.ESQ)<br><input class="esq-file" type="file" accept=".esq"></label></p>
+        <p><label>Matching texture atlas (.ETM)<br><input class="etm-file" type="file" accept=".etm"></label></p>
+        <p><label>Optional USA BATTLE.PRG (blink timing)<br><input class="battle-file" type="file" accept=".prg"></label></p>
+        <p><button class="load-facial">Load facial animation</button>
+          <button class="export-atlas">Export atlas PNG</button></p>
+        <p><label>Actor in event <select class="actor"></select></label></p>
+        <p><label><input class="playing" type="checkbox" checked> Play</label>
+           <label><input class="manual" type="checkbox" checked> Manual expressions</label></p>
+        <p><label><input class="cycle" type="checkbox"> Cycle expression frames (preview)</label></p>
+        <p><label>Mouth frame <input class="mouth" type="number" min="0" max="5" value="0"></label>
+           <label>Eye frame <input class="eyes" type="number" min="0" max="3" value="0"></label></p>
+        <p><label>Animation tick <input class="tick" type="range" min="0" max="1" value="0"></label>
+           <span class="frame-label"></span></p>
+        <p class="status" role="status">Open a character, then load its event ESQ/ETM pair.</p>
+        <p><small>Uncheck Manual expressions for texture-copy commands from the clip.
+          Scene dialogue cues are not played. All selected files stay in your browser.</small></p>
       </div>
 
       <div class="ui-panel app-textures">
@@ -88,10 +109,6 @@
         <p><small>Exports the geometry <em>as is</em>, without skeleton and animations.</small></p>
       </div>
     </div>
-
-    <script type="module" src="https://unpkg.com/three@0.116.1/build/three.module.js" crossorigin></script>
-    <script type="module" src="https://unpkg.com/three@0.116.1/examples/jsm/controls/OrbitControls.js" crossorigin></script>
-    <script type="module" src="https://unpkg.com/three@0.116.1/examples/jsm/exporters/OBJExporter.js" crossorigin></script>
 
     <script type="module" src="src/Viewer.js"></script>
 

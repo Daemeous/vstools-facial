@@ -7,40 +7,11 @@ import { rot13toRad, rot2quat, TimeScale, hex2 } from './VSTOOLS.js';
 
 // TODO bug with 00_BT3 (action data and rotation data overlap?)
 
-const ACTIONS = {
-  0x01: ['loop', 0], // verified
-  0x02: ['0x02', 0], // often at end, used for attack animations
-  0x04: ['0x04', 1], //
-  0x0a: ['0x0a', 1], // verified in 00_COM (no other options, 0x00 x00 follows)
-  0x0b: ['0x0b', 0], // pretty sure, used with walk/run, followed by 0x17/left, 0x18/right
-  0x0c: ['0x0c', 1],
-  0x0d: ['0x0d', 0],
-  0x0f: ['0x0f', 1], // first
-  0x13: ['unlockBone', 1], // verified in emulation
-  0x14: ['0x14', 1], // often at end of non-looping
-  0x15: ['0x15', 1], // verified 00_COM (no other options, 0x00 0x00 follows)
-  0x16: ['0x16', 2], // first, verified 00_BT3
-  0x17: ['0x17', 0], // + often at end
-  0x18: ['0x18', 0], // + often at end
-  0x19: ['0x19', 0], // first, verified 00_COM (no other options, 0x00 0x00 follows)
-  0x1a: ['0x1a', 1], // first, verified 00_BT1 (0x00 0x00 follows)
-  0x1b: ['0x1b', 1], // first, verified 00_BT1 (0x00 0x00 follows)
-  0x1c: ['0x1c', 1],
-  0x1d: ['paralyze?', 0], // first, verified 1C_BT1
-  0x24: ['0x24', 2], // first
-  0x27: ['0x27', 4], // first, verified see 00_COM
-  0x34: ['0x34', 3], // first
-  0x35: ['0x35', 5], // first
-  0x36: ['0x36', 3],
-  0x37: ['0x37', 1], // pretty sure
-  0x38: ['0x38', 1],
-  0x39: ['0x39', 1],
-  0x3a: ['disappear', 0], // used in death animations
-  0x3b: ['land', 0],
-  0x3c: ['adjustShadow', 1], // verified
-  0x3f: ['0x3f', 0], // first, pretty sure, often followed by 0x16
-  0x40: ['0x40', 0], // often preceded by 0x1a, 0x1b, often at end
-};
+const ACTION_SIZES = [
+  1, 1, 1, 1, 2, 3, 2, 2, 3, 2, 2, 1, 2, 1, 2, 2, 0, 0, 0, 2, 2, 2, 3, 1, 1, 1,
+  2, 2, 2, 1, 5, 5, 1, 1, 1, 1, 3, 3, 3, 5, 4, 5, 5, 0, 4, 0, 0, 3, 3, 3, 5, 4,
+  4, 6, 4, 2, 2, 2, 1, 1, 2, 1, 1, 1, 1,
+];
 
 export class SEQAnimation {
   constructor(reader, seq) {
@@ -255,44 +226,19 @@ export class SEQAnimation {
     const r = this.reader;
     this.actions = [];
 
-    // eslint-disable-next-line no-constant-condition
-    while (true) {
-      const f = r.u8(); // frame number or 0xff
-
-      // TODO probably wrong to break here
-      if (f === 0xff) break;
-
-      if (f > this.length) {
-        throw new Error(
-          `Unexpected frame number ${hex2(f)} > ${
-            this.length
-          } in SEQ action section`
-        );
-      }
-
-      const a = r.u8(); // action
-
-      if (a === 0x00) return;
-
-      const action = ACTIONS[a];
-
-      if (!action) {
-        throw new Error(`Unknown SEQ action ${hex2(a)} at frame ${f}`);
-      }
-
-      const [name, paramCount] = action;
-      const params = [];
-
-      for (let i = 0; i < paramCount; ++i) {
-        params.push(r.u8());
-      }
-
-      this.actions.push({
-        f,
-        name,
-        params,
-      });
+    while (r.pos < r.data.length) {
+      let f = r.u8();
+      if (f === 0xff) f = 255 + r.u8();
+      const a = r.u8();
+      if (a === 0) return;
+      const size = ACTION_SIZES[a];
+      if (!size) throw new Error(`Unknown SEQ action ${hex2(a)} at frame ${f}`);
+      const params = r.buffer(size - 1);
+      // The original decoder additionally consumes five bytes for opcode 41.
+      if (a === 41) params.push(...r.buffer(5));
+      this.actions.push({ f, opcode: a, name: hex2(a), params });
     }
+    throw new Error('Unterminated SEQ action stream');
   }
 
   readXYZ() {
@@ -321,7 +267,7 @@ export class SEQAnimation {
     this.animationClip = new AnimationClip(
       this.id.toString(),
       this.length * TimeScale,
-      tracks
+      tracks,
     );
   }
 
@@ -364,7 +310,7 @@ export class SEQAnimation {
     return new QuaternionKeyframeTrack(
       `.bones[${boneId}].quaternion`,
       times,
-      values
+      values,
     );
   }
 

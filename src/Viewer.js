@@ -25,6 +25,7 @@ import { P } from './P.js';
 import { FBC } from './FBC.js';
 import { FBT } from './FBT.js';
 import { cloneMeshWithPose, exportPng, parseExt } from './VSTOOLS.js';
+import { facialPanel } from './ui/facial-panel.js';
 import { initUiPanel } from './ui/ui-panel.js';
 
 export function Viewer() {
@@ -50,10 +51,17 @@ export function Viewer() {
   const mixer = new AnimationMixer(scene);
   let mixerAction;
 
-  function render() {
+  let previousTime;
+  function render(now = 0) {
+    const delta =
+      previousTime === undefined
+        ? 0
+        : Math.min((now - previousTime) / 1000, 0.1);
+    previousTime = now;
     requestAnimationFrame(render);
     orbitControls.update();
-    mixer.update(0.01);
+    mixer.update(delta);
+    facial.update(delta, activeSEQ && activeSEQ.animations[parseAnim()]);
     renderer.render(scene, camera);
   }
 
@@ -74,6 +82,23 @@ export function Viewer() {
   //
 
   let activeSHP, activeSEQ, activeZND;
+
+  const facial = facialPanel(
+    () => activeSHP,
+    (seq) => {
+      stopAnim();
+      activeSEQ = seq;
+      document.querySelector('.app-animation .animation').value = 0;
+      updateAnim();
+    },
+    (time) => {
+      if (mixerAction) {
+        mixerAction.paused = true;
+        mixerAction.time = time;
+        mixer.update(0);
+      }
+    },
+  );
 
   // ui
 
@@ -97,10 +122,22 @@ export function Viewer() {
     const f1 = document.querySelector('.app-file .file1').files[0];
     const f2 = document.querySelector('.app-file .file2').files[0];
 
+    if (!f1) {
+      document.querySelector('.app-facial .status').textContent =
+        'Choose a model file first.';
+      return;
+    }
     const reader1 = new FileReader();
     reader1.onload = function () {
       const x = parseExt(f1.name);
-      load2(x, reader1);
+      try {
+        load2(x, reader1);
+        if (activeSHP && x === 'shp') activeSHP.modelId = parseInt(f1.name, 16);
+      } catch (error) {
+        document.querySelector('.app-facial .status').textContent =
+          error.message;
+        return;
+      }
 
       if ((x === 'znd' || x === 'shp' || x === 'fbc') && f2) {
         reader2.readAsArrayBuffer(f2);
@@ -110,7 +147,12 @@ export function Viewer() {
     const reader2 = new FileReader();
     reader2.onload = function () {
       const x = parseExt(f2.name);
-      load2(x, reader2);
+      try {
+        load2(x, reader2);
+      } catch (error) {
+        document.querySelector('.app-facial .status').textContent =
+          error.message;
+      }
     };
 
     reader1.readAsArrayBuffer(f1);
@@ -265,6 +307,7 @@ export function Viewer() {
   };
 
   function clean() {
+    facial.clear();
     activeSHP = null;
     activeSEQ = null;
 
@@ -291,12 +334,15 @@ export function Viewer() {
     stopAnim();
 
     const id = parseAnim();
+    facial.restart();
 
     mixer.uncacheClip(activeSEQ.animations[id].animationClip);
     mixerAction = mixer.clipAction(
       activeSEQ.animations[id].animationClip,
-      activeSHP.mesh
+      activeSHP.mesh,
     );
+    mixerAction.reset();
+    mixerAction.paused = false;
     mixerAction.play();
 
     document.querySelector('.app-animation .animation').value = id;
@@ -309,7 +355,7 @@ export function Viewer() {
 
     let id = parseInt(
       document.querySelector('.app-animation .animation').value,
-      10
+      10,
     );
 
     if (!id) id = 0;
@@ -323,6 +369,10 @@ export function Viewer() {
     if (mixerAction) mixerAction.stop();
   }
 
+  document
+    .querySelector('.app-animation .animation')
+    .addEventListener('change', updateAnim);
+
   // textures
 
   function updateTextures(textures) {
@@ -335,7 +385,7 @@ export function Viewer() {
         const src = exportPng(
           texture.image.data,
           texture.image.width,
-          texture.image.height
+          texture.image.height,
         );
         return `<img title="${texture.title}" src="${src}">`;
       })
@@ -349,13 +399,15 @@ export function Viewer() {
     .addEventListener('click', updateSettings);
 
   function updateSettings() {
-    const wireframe = document.querySelector('.app-settings .wireframe')
-      .checked;
-    const noVertexColors = document.querySelector(
-      '.app-settings .no-vertex-colors'
+    const wireframe = document.querySelector(
+      '.app-settings .wireframe',
     ).checked;
-    const noTexture = document.querySelector('.app-settings .no-texture')
-      .checked;
+    const noVertexColors = document.querySelector(
+      '.app-settings .no-vertex-colors',
+    ).checked;
+    const noTexture = document.querySelector(
+      '.app-settings .no-texture',
+    ).checked;
     const normals = document.querySelector('.app-settings .normals').checked;
     const skeleton = document.querySelector('.app-settings .skeleton').checked;
 

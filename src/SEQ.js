@@ -57,7 +57,9 @@ export class SEQ {
       const slot = r.u8();
 
       if (slot >= this.numAnimations && slot !== 255) {
-        throw new Error('?');
+        // Some original event files contain unused, out-of-range slots.
+        // Keep valid clips usable, but never resolve those slots to a clip.
+        this.invalidSlots = (this.invalidSlots || 0) + 1;
       }
 
       this.slots.push(slot);

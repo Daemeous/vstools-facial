@@ -1,17 +1,10 @@
-export function resolve(specifier, context, defaultResolve) {
-  return defaultResolve(
-    specifier.replace('https://unpkg.com/three@0.117.1', 'three'),
-    context,
-    defaultResolve
-  );
-}
-
-export function getFormat(url, context, defaultGetFormat) {
-  if (url.match(/node_modules\/three\//)) {
+import { readFile } from 'node:fs/promises';
+export async function load(url, context, next) {
+  if (url.includes('/node_modules/three/') && url.endsWith('.js'))
     return {
       format: 'module',
+      source: await readFile(new URL(url), 'utf8'),
+      shortCircuit: true,
     };
-  }
-
-  return defaultGetFormat(url, context, defaultGetFormat);
+  return next(url, context);
 }
